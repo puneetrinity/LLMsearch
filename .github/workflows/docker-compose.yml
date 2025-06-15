@@ -42,9 +42,9 @@ jobs:
       - name: 📁 Copy .env if available
         run: cp .env.example .env || echo "No .env.example found"
 
-      - name: 🐳 Start services with Docker Compose
+      - name: 🐳 Start services with Docker Compose v2
         run: |
-          docker-compose -f docker-compose.yml --profile init up -d --build
+          docker compose -f docker-compose.yml --profile init up -d --build
 
       - name: ⏳ Wait for containers to be healthy
         run: |
@@ -59,4 +59,4 @@ jobs:
 
       - name: 🧹 Clean up
         if: always()
-        run: docker-compose -f docker-compose.yml down -v
+        run: docker compose -f docker-compose.yml down -v
