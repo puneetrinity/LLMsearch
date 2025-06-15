@@ -6,10 +6,12 @@ from fastapi.responses import JSONResponse
 import time
 import uuid
 import logging
+from contextlib import asynccontextmanager
 
 from app.api.endpoints import search, health
 from app.config.settings import settings
 from app.core.exceptions import CustomHTTPException
+from app.database.connection import init_database, close_database
 
 # Configure logging
 logging.basicConfig(
@@ -17,13 +19,54 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 
-# Initialize FastAPI app
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage application lifespan events"""
+    # Startup
+    try:
+        logging.info("🚀 Starting LLM Search Backend...")
+        
+        # Initialize database
+        await init_database()
+        logging.info("✅ Database initialized")
+        
+        # Add any other startup tasks here
+        # await initialize_cache()
+        # await warm_up_services()
+        
+        logging.info("🎉 Application startup completed")
+        
+    except Exception as e:
+        logging.error(f"❌ Startup failed: {e}")
+        raise
+    
+    yield
+    
+    # Shutdown
+    try:
+        logging.info("🔄 Shutting down LLM Search Backend...")
+        
+        # Close database connections
+        await close_database()
+        logging.info("✅ Database connections closed")
+        
+        # Add any other cleanup tasks here
+        # await close_cache()
+        # await shutdown_services()
+        
+        logging.info("👋 Application shutdown completed")
+        
+    except Exception as e:
+        logging.error(f"❌ Shutdown error: {e}")
+
+# Initialize FastAPI app with lifespan
 app = FastAPI(
     title="LLM Search Backend",
-    description="AI-powered search with intelligent content analysis",
+    description="AI-powered search with intelligent content analysis and database logging",
     version="1.0.0",
     docs_url="/docs" if settings.DEBUG else None,
-    redoc_url="/redoc" if settings.DEBUG else None
+    redoc_url="/redoc" if settings.DEBUG else None,
+    lifespan=lifespan
 )
 
 # Add middleware
@@ -71,7 +114,33 @@ async def root():
     return {
         "message": "LLM Search Backend API", 
         "version": "1.0.0",
+        "features": ["AI Search", "Content Analysis", "Cost Tracking", "Database Logging"],
         "docs": "/docs" if settings.DEBUG else "disabled"
+    }
+
+@app.get("/api/v1/info")
+async def api_info():
+    """Get API information and capabilities"""
+    return {
+        "name": "LLM Search Backend",
+        "version": "1.0.0",
+        "description": "AI-powered search with intelligent content analysis",
+        "features": {
+            "query_enhancement": "Multi-strategy query expansion",
+            "multi_search": "Brave Search + Bing Search integration",
+            "content_fetching": "ZenRows web scraping with fallbacks",
+            "llm_analysis": "Local Ollama model processing",
+            "caching": "Redis + memory caching",
+            "cost_tracking": "Real-time budget monitoring",
+            "database_logging": "Comprehensive request logging and analytics"
+        },
+        "endpoints": {
+            "search": "/api/v1/search",
+            "suggestions": "/api/v1/search/suggestions",
+            "stats": "/api/v1/search/stats",
+            "health": "/health",
+            "docs": "/docs" if settings.DEBUG else None
+        }
     }
 
 if __name__ == "__main__":
