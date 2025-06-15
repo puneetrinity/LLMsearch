@@ -110,11 +110,11 @@ services:
     # Pull the model on startup
     entrypoint: ["/bin/bash", "-c"]
     command: 
-      - |
-        /bin/ollama serve &
-        sleep 15
-        ollama pull llama2:7b
-        wait
+      /bin/bash -c "
+        /bin/ollama serve & 
+        sleep 15 && 
+        ollama pull llama2:7b && 
+        wait"
 
   # Database initialization service (runs once)
   db-init:
