@@ -2,14 +2,12 @@ name: CI - Docker Compose Integration
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
-  docker-compose-up:
+  test-compose:
     runs-on: ubuntu-latest
 
     services:
@@ -38,33 +36,27 @@ jobs:
           --health-retries 3
 
     steps:
-      - name: Checkout code
+      - name: 📦 Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Set up Docker Compose
-        uses: docker/setup-docker-compose@v2
-
-      - name: Copy example env
+      - name: 📁 Copy .env if available
         run: cp .env.example .env || echo "No .env.example found"
 
-      - name: Build and start containers
-        run: docker-compose -f docker-compose.yml --profile init up -d --build
-
-      - name: Wait for health checks
+      - name: 🐳 Start services with Docker Compose
         run: |
-          echo "⏳ Waiting for services to be healthy..."
+          docker-compose -f docker-compose.yml --profile init up -d --build
+
+      - name: ⏳ Wait for containers to be healthy
+        run: |
+          echo "Waiting for containers to become healthy..."
           sleep 60
 
-      - name: Show container status
+      - name: 🔍 Check container status
         run: docker ps -a
 
-      - name: Test API health endpoint
-        run: |
-          curl --fail http://localhost:8000/health || exit 1
+      - name: ✅ Test API Health Endpoint
+        run: curl --fail http://localhost:8000/health || (docker logs $(docker ps -q) && exit 1)
 
-      - name: Shut down containers
+      - name: 🧹 Clean up
         if: always()
         run: docker-compose -f docker-compose.yml down -v
